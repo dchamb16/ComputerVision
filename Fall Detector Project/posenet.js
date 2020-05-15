@@ -42,8 +42,8 @@ let leftShoulderY = new Queue();
 let rightShoulderX = new Queue();
 let rightShoulderY = new Queue();
 
-width = 1000;
-height = 1000; 
+//width = 1000;
+//height = 1000; 
 
 //setup the video element 
 function setup() {
