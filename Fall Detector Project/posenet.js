@@ -3,6 +3,14 @@ let poseNet;
 let poses = [];
 
 
+function mse(a, b) {
+	let error = 0
+	for (let i = 0; i < a.length; i++) {
+		error += Math.pow((b[i] - a[i]), 2)
+	}
+	return error / a.length
+}
+
 function Queue() {
     this.elements = [];
 }
@@ -127,8 +135,15 @@ function drawKeypoints()  {
       model.then(function (res){
         let values = tf.tensor2d([[leftX,leftY,rightX,rightY]]);
         let prediction = res.predict(values).dataSync();
-        console.log(prediction);
+        //console.log(prediction);
+
+        let mean_sq_error = mse([leftX,leftY,rightX,rightY], prediction);
+        console.log('MSE:', mean_sq_error);
       }); 
+
+      if (leftShoulderX.length % 1000 == 0){
+        let model = model.fit(tf.tensor2d(leftShoulderX,leftShoulderY,rightShoulderX,rightShoulderY));
+      };
 
       // Only draw an ellipse is the pose probability is bigger than 0.2
       if (keypoint.score > 0.2) {
