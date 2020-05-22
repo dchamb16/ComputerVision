@@ -78,6 +78,26 @@ function draw() {
   drawKeypoints();
 }
 
+var modelPath = 'fallDetector-decoder-js/model.json';
+
+async function load_model() {
+  let m = await tf.loadLayersModel(modelPath)
+  return m;
+}
+
+let model = load_model();
+
+
+
+// const model = tf.loadLayersModel(modelPath).then(function(model){
+//   var y = tf.tensor2d([[120,-10,20,38]]);
+//   var prediction = model.predict(y).dataSync();
+//   console.log(prediction);
+// })
+
+
+
+
 // A function to draw circles over the detected keypoints
 function drawKeypoints()  {
   // Loop through all the poses detected
@@ -90,14 +110,25 @@ function drawKeypoints()  {
       // log left shoulder X,Y coordinates
       if (keypoint.part === 'leftShoulder'){   
         leftShoulderX.addToQueue(keypoint.position.x, 105);
+        var leftX = keypoint.position.x;
         leftShoulderY.addToQueue(keypoint.position.y, 105);
+        var leftY = keypoint.position.y;
       };
 
       // log right shoulder X,Y coordinates
       if (keypoint.part === 'rightShoulder') {
           rightShoulderX.addToQueue(keypoint.position.x, 105);
+          var rightX = keypoint.position.x;
           rightShoulderY.addToQueue(keypoint.position.y, 105);
+          var rightY = keypoint.position.y;
       };
+
+      //console.log(model.predict([leftX,leftY,rightX,rightY]).dataSync());
+      model.then(function (res){
+        let values = tf.tensor2d([[leftX,leftY,rightX,rightY]]);
+        let prediction = res.predict(values).dataSync();
+        console.log(prediction);
+      }); 
 
       // Only draw an ellipse is the pose probability is bigger than 0.2
       if (keypoint.score > 0.2) {
