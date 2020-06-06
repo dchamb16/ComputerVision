@@ -11,6 +11,9 @@ function mse(a, b) {
 	return error / a.length
 }
 
+
+///validate the queue functionality
+
 function Queue() {
     this.elements = [];
 }
@@ -49,6 +52,8 @@ let leftShoulderX = new Queue();
 let leftShoulderY = new Queue();
 let rightShoulderX = new Queue();
 let rightShoulderY = new Queue();
+let errors = [999999,999999,999999,999999];
+let error_test = new Queue();
 
 //width = 1000;
 //height = 1000; 
@@ -97,15 +102,6 @@ let model = load_model();
 
 
 
-// const model = tf.loadLayersModel(modelPath).then(function(model){
-//   var y = tf.tensor2d([[120,-10,20,38]]);
-//   var prediction = model.predict(y).dataSync();
-//   console.log(prediction);
-// })
-
-
-
-
 // A function to draw circles over the detected keypoints
 function drawKeypoints()  {
   // Loop through all the poses detected
@@ -117,32 +113,44 @@ function drawKeypoints()  {
 
       // log left shoulder X,Y coordinates
       if (keypoint.part === 'leftShoulder'){   
-        leftShoulderX.addToQueue(keypoint.position.x, 105);
+        leftShoulderX.addToQueue(keypoint.position.x, 10000);
         var leftX = keypoint.position.x;
-        leftShoulderY.addToQueue(keypoint.position.y, 105);
+        leftShoulderY.addToQueue(keypoint.position.y, 10000);
         var leftY = keypoint.position.y;
       };
 
       // log right shoulder X,Y coordinates
       if (keypoint.part === 'rightShoulder') {
-          rightShoulderX.addToQueue(keypoint.position.x, 105);
+          rightShoulderX.addToQueue(keypoint.position.x, 10000);
           var rightX = keypoint.position.x;
-          rightShoulderY.addToQueue(keypoint.position.y, 105);
+          rightShoulderY.addToQueue(keypoint.position.y, 10000);
           var rightY = keypoint.position.y;
       };
 
-      //console.log(model.predict([leftX,leftY,rightX,rightY]).dataSync());
+
       model.then(function (res){
         let values = tf.tensor2d([[leftX,leftY,rightX,rightY]]);
         let prediction = res.predict(values).dataSync();
-        //console.log(prediction);
 
-        let mean_sq_error = mse([leftX,leftY,rightX,rightY], prediction);
-        console.log('MSE:', mean_sq_error);
+        let mean_sq_error = mse([leftX,leftY,rightX,rightY], [prediction[0],prediction[1],prediction[2],prediction[3]]);
+        
+        error_test.addToQueue(mean_sq_error, 100000);
+        
+        
+        if (mean_sq_error > d3.quantile(error_test.elements, .999 )){
+          var quant = d3.quantile(error_test.elements, .99);
+          console.log('Fall Detected. Expected = ', mean_sq_error, ' Bounds = ', quant);
+          
+        };
+        
+        //console.log('MSE: ', mean_sq_error);
+        //console.log('99% Quantile: ', d3.quantile(error_test['elements'], .99));
+
+
       }); 
 
-      if (leftShoulderX.length % 1000 == 0){
-        let model = model.fit(tf.tensor2d(leftShoulderX,leftShoulderY,rightShoulderX,rightShoulderY));
+      if (leftShoulderX.length % 100 == 0){
+        let model = model.fit(tf.tensor2d(leftShoulderX['elements'],leftShoulderY['elements'],rightShoulderX['elements'],rightShoulderY['elements']));
       };
 
       // Only draw an ellipse is the pose probability is bigger than 0.2
