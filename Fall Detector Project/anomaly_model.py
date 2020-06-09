@@ -7,6 +7,8 @@ import pandas as pd
 
 df = pd.read_csv('data.csv')
 
+df.head()
+df = df[['Left_Shoulder_Y', 'Right_Shoulder_Y']]
 df.shape[1]
 
 #df2 = StandardScaler().fit_transform(df.values)

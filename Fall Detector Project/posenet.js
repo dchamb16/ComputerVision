@@ -52,8 +52,8 @@ let leftShoulderX = new Queue();
 let leftShoulderY = new Queue();
 let rightShoulderX = new Queue();
 let rightShoulderY = new Queue();
-let errors = [999999,999999,999999,999999];
 let error_test = new Queue();
+var errors = [];
 
 //width = 1000;
 //height = 1000; 
@@ -129,19 +129,38 @@ function drawKeypoints()  {
 
 
       model.then(function (res){
-        let values = tf.tensor2d([[leftX,leftY,rightX,rightY]]);
+        let values = tf.tensor2d([[leftY,rightY]]);
         let prediction = res.predict(values).dataSync();
 
-        let mean_sq_error = mse([leftX,leftY,rightX,rightY], [prediction[0],prediction[1],prediction[2],prediction[3]]);
+        let mean_sq_error = mse([leftY, rightY], [prediction[0],prediction[1]]);
         
-        error_test.addToQueue(mean_sq_error, 100000);
+        //error_test.addToQueue(mean_sq_error, 100000);
         
-        
-        if (mean_sq_error > d3.quantile(error_test.elements, .999 )){
-          var quant = d3.quantile(error_test.elements, .99);
-          console.log('Fall Detected. Expected = ', mean_sq_error, ' Bounds = ', quant);
-          
+        if (errors.length > 100){
+          errors.pop();
         };
+        
+        errors.unshift(mean_sq_error);
+
+        //console.log('errors: ', errors);
+        var quant = d3.quantile(errors.sort(), .999);
+
+        if (mean_sq_error > quant * 1.03) {
+          console.log('FALL');
+          console.log('MSE : ', mean_sq_error);
+          console.log('Quant: ', quant);
+          document.getElementById('fall-alert').innerHTML = 'There was a fall!!!'
+          setTimeout(function(){
+            document.getElementById("fall-alert").innerHTML = '';
+        }, 5000);
+        };
+
+
+        // if (mean_sq_error > d3.quantile(error_test.elements, .999 )){
+        //   var quant = d3.quantile(error_test.elements, .99);
+        //   console.log('Fall Detected. Expected = ', mean_sq_error, ' Bounds = ', quant);
+          
+        // };
         
         //console.log('MSE: ', mean_sq_error);
         //console.log('99% Quantile: ', d3.quantile(error_test['elements'], .99));
@@ -149,9 +168,9 @@ function drawKeypoints()  {
 
       }); 
 
-      if (leftShoulderX.length % 100 == 0){
-        let model = model.fit(tf.tensor2d(leftShoulderX['elements'],leftShoulderY['elements'],rightShoulderX['elements'],rightShoulderY['elements']));
-      };
+      // if (leftShoulderX.length % 100 == 0){
+      //   let model = model.fit(tf.tensor2d(leftShoulderY['elements'],rightShoulderY['elements']));
+      // };
 
       // Only draw an ellipse is the pose probability is bigger than 0.2
       if (keypoint.score > 0.2) {
